@@ -16,15 +16,32 @@ router.get('/:pid', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const { title, description, code, price, status, stock, category, thumbnails } = req.body;
-  if (!title || !description || !code || !price || !status || !stock || !category) {
+  if (!title || !description || !code || price == null || status == null || stock == null || !category) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
-  const product = await manager.addProduct({ title, description, code, price, status, stock, category, thumbnails });
+  const product = await manager.addProduct({
+    title,
+    description,
+    code,
+    price: Number(price),
+    status: Boolean(status),
+    stock: Number(stock),
+    category,
+    thumbnails: Array.isArray(thumbnails) ? thumbnails : []
+  });
+
+  // Emitimos actualización para la vista en tiempo real
+  const io = req.app.get('io');
+  if (io) {
+    const updated = await manager.getAll();
+    io.emit('products:update', updated);
+  }
+
   res.status(201).json(product);
 });
 
 router.put('/:pid', async (req, res) => {
-  const update = req.body;
+  const update = { ...req.body };
   delete update.id;
   const result = await manager.updateProduct(req.params.pid, update);
   res.json(result || { error: 'Producto no encontrado' });
@@ -32,6 +49,14 @@ router.put('/:pid', async (req, res) => {
 
 router.delete('/:pid', async (req, res) => {
   const result = await manager.deleteProduct(req.params.pid);
+
+  // Emitimos actualización para la vista en tiempo real
+  const io = req.app.get('io');
+  if (io) {
+    const updated = await manager.getAll();
+    io.emit('products:update', updated);
+  }
+
   res.json(result);
 });
 

@@ -1,0 +1,15 @@
+{{! Muestra los productos actuales. Al recargar, se ve cambios hechos por /api/products }}
+<h1>Productos (Home / HTTP)</h1>
+
+<ul>
+  {{#each products}}
+    <li>
+      <strong>{{this.title}}</strong>
+      — ${{this.price}}
+      — Stock: {{this.stock}}
+      <em style="margin-left:auto;">ID: {{this.id}}</em>
+    </li>
+  {{/each}}
+</ul>
+
+<p>Para ver actualización automática sin recargar, entrá a <a href="/realtimeproducts">/realtimeproducts</a>.</p>
