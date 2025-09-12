@@ -1,63 +1,47 @@
 import { Router } from 'express';
-import ProductManager from '../managers/ProductManager.js';
+import Product from '../models/Product.model.js';
 
 const router = Router();
-const manager = new ProductManager();
 
+// GET paginado
 router.get('/', async (req, res) => {
-  const products = await manager.getAll();
-  res.json(products);
+  try {
+    const { limit = 10, page = 1, sort, query } = req.query;
+
+    const filter = {};
+    if (query) {
+      if (query === 'available') filter.status = true;
+      else filter.category = query;
+    }
+
+    const options = {
+      limit: parseInt(limit),
+      page: parseInt(page),
+      sort: sort ? { price: sort === 'asc' ? 1 : -1 } : {}
+    };
+
+    const result = await Product.paginate(filter, options);
+    res.json({
+      status: 'success',
+      payload: result.docs,
+      totalPages: result.totalPages,
+      prevPage: result.prevPage,
+      nextPage: result.nextPage,
+      page: result.page
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
 });
 
-router.get('/:pid', async (req, res) => {
-  const product = await manager.getById(req.params.pid);
-  res.json(product || { error: 'Producto no encontrado' });
-});
-
+// POST crear producto
 router.post('/', async (req, res) => {
-  const { title, description, code, price, status, stock, category, thumbnails } = req.body;
-  if (!title || !description || !code || price == null || status == null || stock == null || !category) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  try {
+    const newProduct = await Product.create(req.body);
+    res.status(201).json({ status: 'success', payload: newProduct });
+  } catch (err) {
+    res.status(400).json({ status: 'error', message: err.message });
   }
-  const product = await manager.addProduct({
-    title,
-    description,
-    code,
-    price: Number(price),
-    status: Boolean(status),
-    stock: Number(stock),
-    category,
-    thumbnails: Array.isArray(thumbnails) ? thumbnails : []
-  });
-
-  // Emitimos actualización para la vista en tiempo real
-  const io = req.app.get('io');
-  if (io) {
-    const updated = await manager.getAll();
-    io.emit('products:update', updated);
-  }
-
-  res.status(201).json(product);
-});
-
-router.put('/:pid', async (req, res) => {
-  const update = { ...req.body };
-  delete update.id;
-  const result = await manager.updateProduct(req.params.pid, update);
-  res.json(result || { error: 'Producto no encontrado' });
-});
-
-router.delete('/:pid', async (req, res) => {
-  const result = await manager.deleteProduct(req.params.pid);
-
-  // Emitimos actualización para la vista en tiempo real
-  const io = req.app.get('io');
-  if (io) {
-    const updated = await manager.getAll();
-    io.emit('products:update', updated);
-  }
-
-  res.json(result);
 });
 
 export default router;

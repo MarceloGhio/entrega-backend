@@ -1,0 +1,11 @@
+<h1>Productos</h1>
+<ul>
+{{#each products}}
+<li>
+    <a href="/products/{{this._id}}">{{this.title}}</a> - ${{this.price}}
+    <form action="/api/carts/add/{{this._id}}" method="POST" style="display:inline">
+        <button type="submit">Agregar al carrito</button>
+    </form>
+</li>
+{{/each}}
+</ul>

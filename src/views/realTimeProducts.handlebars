@@ -1,46 +1,34 @@
-<h1>Productos en Tiempo Real (WebSocket)</h1>
-
-<ul id="product-list">
+<h1>Productos en tiempo real</h1>
+<ul id="products-list">
   {{#each products}}
-    <li>
-      <strong>{{this.title}}</strong>
-      — ${{this.price}}
-      — Stock: {{this.stock}}
-      <em style="margin-left:auto;">ID: {{this.id}}</em>
-      <button class="delete-btn" data-id="{{this.id}}">Eliminar</button>
+    <li id="product-{{this._id}}">
+      <strong>{{this.title}}</strong> — ${{this.price}} — Stock: {{this.stock}}
+      <button onclick="addToCart('{{this._id}}')">Agregar al carrito</button>
+      <button onclick="socketDelete('{{this._id}}')">Eliminar</button>
     </li>
   {{/each}}
 </ul>
 
-<h2>Crear producto</h2>
-<form id="product-form">
-  <div>
-    <label>Título: <input name="title" required /></label>
-  </div>
-  <div>
-    <label>Descripción: <input name="description" required /></label>
-  </div>
-  <div>
-    <label>Código: <input name="code" required /></label>
-  </div>
-  <div>
-    <label>Precio: <input name="price" type="number" step="0.01" required /></label>
-  </div>
-  <div>
-    <label>Stock: <input name="stock" type="number" required /></label>
-  </div>
-  <div>
-    <label>Categoría: <input name="category" required /></label>
-  </div>
-  <div>
-    <label>Activo: <input name="status" type="checkbox" checked /></label>
-  </div>
-  <div>
-    <label>Thumbnails (opcional, separá por comas): <input name="thumbnails" /></label>
-  </div>
-  <button type="submit">Crear</button>
-</form>
-
-{{!-- Cargamos el cliente de socket.io que sirve el propio servidor --}}
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/realtime.js"></script>
+<script>
+  const socket = io();
+  socket.on('products:update', (products) => {
+    const ul = document.getElementById('products-list');
+    ul.innerHTML = '';
+    products.forEach(p => {
+      const li = document.createElement('li');
+      li.id = 'product-' + p._id;
+      li.innerHTML = `<strong>${p.title}</strong> — $${p.price} — Stock: ${p.stock}
+        <button onclick="addToCart('${p._id}')">Agregar al carrito</button>
+        <button onclick="socketDelete('${p._id}')">Eliminar</button>`;
+      ul.appendChild(li);
+    });
+  });
+
+  function socketDelete(id) {
+    socket.emit('product:delete', id);
+  }
+</script>
+
+<script src="/js/cart.js"></script>
+
